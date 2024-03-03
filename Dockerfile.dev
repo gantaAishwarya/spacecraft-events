@@ -1,0 +1,27 @@
+FROM python:3.11-buster
+
+#output is immediately flushed and shown in the console 
+ENV PYTHONUNBUFFERED=1
+
+# create code directory
+RUN mkdir /code
+WORKDIR /code
+
+# copy just requirement files and install before rest of code to avoid having to
+# reinstall packages during build every time code changes
+COPY ./requirements/base.txt /code/
+COPY ./requirements/local.txt /code/
+
+# upgrade pip and install requirements
+RUN pip install --upgrade pip
+RUN pip install -r local.txt
+
+# copy code files
+COPY . /code/
+# Copy the entrypoint script to the working directory
+COPY entrypoint.sh /code/
+
+# Set the entrypoint for the container
+ENTRYPOINT ["/code/entrypoint.sh"]
+EXPOSE 8000
+STOPSIGNAL SIGINT
