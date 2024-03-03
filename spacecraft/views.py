@@ -13,6 +13,7 @@ from .filters import EventsFilter, LatitudeFilter, LongitudeFilter
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+from datetime import datetime
 # from rest_framework import generics
 
 #If token authentication is required use code below
@@ -95,18 +96,45 @@ def Events_detail(request, id, format=None):
         return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
-
         # Retrieve the nearest longitude and latitude positions
-        nearest_longitude = Longitude.objects.filter(timestamp__lte=event_instance.occurrence_time).order_by('-timestamp').first()
-        nearest_latitude = Latitude.objects.filter(timestamp__lte=event_instance.occurrence_time).order_by('-timestamp').first()
+        nearest_longitude_lte = Longitude.objects.filter(timestamp__lte=event_instance.occurrence_time).order_by('-timestamp').first()
+        nearest_latitude_lte = Latitude.objects.filter(timestamp__lte=event_instance.occurrence_time).order_by('-timestamp').first()
 
-        if nearest_longitude and nearest_latitude:
+        nearest_longitude_gte = Longitude.objects.filter(timestamp__gte=event_instance.occurrence_time).order_by('timestamp').first()
+        nearest_latitude_gte = Latitude.objects.filter(timestamp__gte=event_instance.occurrence_time).order_by('timestamp').first()
+
+        if nearest_longitude_lte and nearest_latitude_lte and nearest_longitude_gte and nearest_latitude_gte:
             # Serialize the longitude and latitude positions
-            longitude_serializer = LongitudeSerializer(nearest_longitude)
-            latitude_serializer = LatitudeSerializer(nearest_latitude)
+            longitude_lte_serializer = LongitudeSerializer(nearest_longitude_lte)
+            latitude_lte_serializer = LatitudeSerializer(nearest_latitude_lte)
+
+            longitude_gte_serializer = LongitudeSerializer(nearest_longitude_gte)
+            latitude_gte_serializer = LatitudeSerializer(nearest_latitude_gte)
+
+            # Calculate time differences
+            nearest_longitude_lte_datetime = datetime.fromisoformat(longitude_lte_serializer.data.get("timestamp"))
+            timediff_long_lte = event_instance.occurrence_time - nearest_longitude_lte_datetime
+
+            nearest_latitude_lte_datetime = datetime.fromisoformat(latitude_lte_serializer.data.get("timestamp"))
+            timediff_lat_lte = event_instance.occurrence_time - nearest_latitude_lte_datetime
+
+            nearest_longitude_gte_datetime = datetime.fromisoformat(longitude_gte_serializer.data.get("timestamp"))
+            timediff_long_gte = nearest_longitude_gte_datetime - event_instance.occurrence_time
+
+            nearest_latitude_gte_datetime = datetime.fromisoformat(latitude_gte_serializer.data.get("timestamp"))
+            timediff_lat_gte = nearest_latitude_gte_datetime - event_instance.occurrence_time
+
+            # Get positions based on time difference
+            long_position = longitude_lte_serializer.data.get("position") if timediff_long_lte <= timediff_long_gte else longitude_gte_serializer.data.get("position")
+            lat_position = latitude_lte_serializer.data.get("position") if timediff_lat_lte <= timediff_lat_gte else latitude_gte_serializer.data.get("position")
 
             # Construct the response in the format (longitude, latitude)
-            res = f'(LONGITUDE: {longitude_serializer.data.get("position")},LATITUTE: {latitude_serializer.data.get("position")})'
+            res = f'(LONGITUDE: {long_position}, LATITUDE: {lat_position})'
+            
+        elif nearest_longitude_lte and nearest_latitude_lte and not nearest_longitude_gte and not nearest_latitude_gte:
+            res = f'(LONGITUDE: {nearest_longitude_lte.position}, LATITUDE: {nearest_latitude_lte.position})'
+        elif not nearest_longitude_lte and not nearest_latitude_lte and nearest_longitude_gte and nearest_latitude_gte:
+            res = f'(LONGITUDE: {nearest_longitude_gte.position}, LATITUDE: {nearest_latitude_gte.position})'
         else:
             res = None
 
