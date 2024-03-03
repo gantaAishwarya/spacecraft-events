@@ -29,3 +29,18 @@ auto get_name() const -> std::string override { return name; } : Function overri
 the get_name function from the SpaceObject class. This enables code reuse and flexibility in handling different types of space objects
 while maintaining a common interface.
 
+
+CPP principles used:
+
+1. Constructor Initialization List:
+In the SpaceObject and Orbit classes, when a new object is created (like a spaceship or an orbit), "initialization list" is used
+in the constructor. This list helps set up or initialize the object's features.
+
+2.Access Specifiers: Access specifiers, which include public, protected, and private, specify who can access the information 
+inside a class.
+- These access Specifiers (public, protected, and private) are used to control the visibility of members fields and
+functions.
+
+3.Member Functions: Member functions are used to encapsulate behavior related to each class. In the provided code a set of setter and
+getter functions like set_position, get_name, get_semi_major_axis, get_eccentricity, get_position, and distance_to are used. These 
+functions provide access to data and perform calculations.
